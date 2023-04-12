@@ -75,6 +75,9 @@ class BoxEnvironment(Environment):
             Wall(endpoints=np.array([top_left, bottom_left]), inside_normal=right), 
         ]
 
+    def __repr__(self) -> str: 
+        return f"{self.__class__.__name__}(wall_length={self.wall_length})"
+
     def inside(self, point: ndarray) -> bool: 
         half_wall_length: float = self.wall_length / 2. 
         within_width: bool = ((point[0] < half_wall_length) and (point[0] > -half_wall_length))

@@ -1,6 +1,7 @@
+import copy 
 import dataclasses
 import os 
-from typing import Optional, Sequence
+from typing import List, Optional, Sequence
 
 import matplotlib   
 import matplotlib.pyplot as plt 
@@ -15,9 +16,11 @@ matplotlib.use("Agg")
 class Simulator: 
     step_duration: float = 1.0 # [s] 
 
-    def __init__(self, environment: Optional[Environment]=None, vehicles: Optional[Sequence[Vehicle]]=None) -> None: 
+    def __init__(self, environment: Optional[Environment]=None, vehicles: Optional[Sequence[Vehicle]]=None, artifact_path: Optional[os.PathLike]=None) -> None: 
         self.current_step: int = 0 
         self.environment = environment 
+        self.artifact_path = artifact_path
+
 
         if ((vehicles is not None) and (not isinstance(vehicles, list))): 
             self.vehicles = [vehicles]
@@ -31,8 +34,14 @@ class Simulator:
     def current_time(self) -> float: 
         return self.step_duration * self.current_step
 
+    def save_render_artifacts(self) -> None: 
+        if not hasattr(self, "render_artifacts"): 
+            self.render_artifacts: List[Sequence[Vehicle]] = [] 
+
+        self.render_artifacts.append(copy.deepcopy(self.vehicles))
+
     def render(self) -> None: 
-        save_path: os.PathLike = f"step_{self.current_step}"
+        save_path: os.PathLike = os.path.join(self.artifact_path, f"step_{self.current_step}")
 
         figure, ax = plt.subplots(nrows=1, ncols=1)
         plt.title(f"Step {self.current_step}")
@@ -43,6 +52,9 @@ class Simulator:
 
         plt.savefig(save_path)
         plt.close()
+
+    def create_animation(self) -> None: 
+        pass
 
     def reset(self) -> None: 
         self.current_step: int = 0 
@@ -74,7 +86,9 @@ class Simulator:
                 sensor.write(sensor_reading)
                 distance_measurements[i] = sensor.read()
 
-            control_signal: ndarray = vehicle.controller(distance_measurements)
+            # control_signal: ndarray = vehicle.controller(distance_measurements)
+            # testing 
+            control_signal: ndarray = np.array([0., 1.]) * 0.1
             vehicle.velocity = control_signal 
 
         self.current_step += 1
