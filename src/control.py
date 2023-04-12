@@ -37,8 +37,12 @@ class HCS04Controller(ABC):
 class AvoidingController(HCS04Controller): 
     def __init__(self, headings: Optional[ndarray]=None) -> None: 
         self.headings = headings 
+        
+        UP: ndarray = np.array([0., 1.]) * 1e-1
+        self.previous_velocity = UP
 
     def reset(self) -> None: 
+        self.previous_velocity: ndarray = None
         # TODO implement me to reset any state variables 
         pass
 
@@ -46,6 +50,11 @@ class AvoidingController(HCS04Controller):
         if ((self.headings is None) or (self.headings.shape[0] != distances.size)): 
             raise AttributeError(f"headings attribute must be set and have equal size to distance argument.") 
 
-        # TODO: write a repulsive control policy 
+        collision_threshold: float = 1e-1
 
-        return np.zeros(2)
+        if np.all(distances > collision_threshold): 
+            return self.previous_velocity
+        else: 
+            new_velocity: ndarray = -self.previous_velocity 
+            self.previous_velocity = new_velocity
+            return new_velocity

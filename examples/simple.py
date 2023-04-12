@@ -11,7 +11,6 @@ from utils import setup_experiment_directory, get_now_str
 parser = argparse.ArgumentParser()
 
 # visuals
-parser.add_argument("--save_every", type=int, default=None)
 parser.add_argument("--save_animation", action="store_true")
 
 def main(args: namespace): 
@@ -32,12 +31,12 @@ def main(args: namespace):
     simulator: Simulator = Simulator(room, vehicle, experiment_directory)
     log.info("configured simulator")
 
-    num_steps: int = 5 
-    simulator.render()
+    simulator.simulate(100, save_artifacts=args.save_animation)
 
-    for _ in range(num_steps): 
-        simulator.step()
-        simulator.render()
+    if args.save_animation: 
+        log.info("animating simulation history")
+        simulator.create_animation()
+        log.info("finished animation")
 
 if __name__=="__main__": 
     args = parser.parse_args()

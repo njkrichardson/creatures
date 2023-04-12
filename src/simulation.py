@@ -4,6 +4,7 @@ import os
 from typing import List, Optional, Sequence
 
 import matplotlib   
+from matplotlib import animation 
 import matplotlib.pyplot as plt 
 import numpy as np
 
@@ -20,7 +21,6 @@ class Simulator:
         self.current_step: int = 0 
         self.environment = environment 
         self.artifact_path = artifact_path
-
 
         if ((vehicles is not None) and (not isinstance(vehicles, list))): 
             self.vehicles = [vehicles]
@@ -54,19 +54,40 @@ class Simulator:
         plt.close()
 
     def create_animation(self) -> None: 
-        pass
+        save_path: os.PathLike = os.path.join(self.artifact_path, "animation.mp4")
+
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+
+        def init():
+            self.environment.draw(ax)
+            return fig,
+
+        def animate(i):
+            ax.clear()
+            self.environment.draw(ax)
+            vehicles: Sequence[Vehicle] = self.render_artifacts[i]
+            for vehicle in vehicles: 
+                vehicle.draw(ax)
+            return fig,
+
+        animated = animation.FuncAnimation(fig, animate, init_func=init, frames=len(self.render_artifacts), interval=1, blit=True)
+        animated.save(save_path, fps=30, extra_args=['-vcodec', 'libx264'])
 
     def reset(self) -> None: 
         self.current_step: int = 0 
+        self.render_artifacts = [] 
         for vehicle in self.vehicles: 
             vehicle.reset()
 
-    def simulate(self, num_steps: int) -> None: 
+    def simulate(self, num_steps: int, **kwargs) -> None: 
         for _ in range(num_steps): 
-            self.step()
+            self.step(**kwargs)
 
-    def step(self) -> None: 
+    def step(self, **kwargs) -> None: 
         for vehicle in self.vehicles: 
+            if kwargs.get("save_artifacts", False): 
+                self.save_render_artifacts()
+
             # move the vehicle based on its current velocity 
             try: 
                 vehicle.position += vehicle.velocity * self.step_duration
@@ -79,16 +100,13 @@ class Simulator:
             distance_measurements = np.zeros(len(vehicle.sensors))
 
             for i, sensor in enumerate(vehicle.sensors): 
-                # TODO time mux this w.r.t. sensor sampling rates, but there's some added complexity 
                 sensor_position: ndarray = vehicle.position 
                 sensor_heading: ndarray = sensor.heading
                 sensor_reading: ndarray = self.environment.distance_to_boundary(sensor_position, sensor_heading)
                 sensor.write(sensor_reading)
                 distance_measurements[i] = sensor.read()
 
-            # control_signal: ndarray = vehicle.controller(distance_measurements)
-            # testing 
-            control_signal: ndarray = np.array([0., 1.]) * 0.1
+            control_signal: ndarray = vehicle.controller(distance_measurements)
             vehicle.velocity = control_signal 
 
         self.current_step += 1

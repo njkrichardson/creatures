@@ -85,5 +85,6 @@ class SimpleCar(Vehicle):
         self.controller.register_headings(np.array([sensor.heading for sensor in self.sensors]))
 
     def draw(self, ax) -> None: 
-        ax.scatter(self.position[0], self.position[1], marker="*", s=100)
-        ax.arrow(self.position[0], self.position[1], self._heading[0] / 10., self._heading[1] / 10.)
+        ax.scatter(self.position[0], self.position[1], marker="o", s=100)
+        ax.arrow(self.position[0], self.position[1], self._heading[0] / 5., self._heading[1] / 5., width=0.02, color='k')
+        ax.arrow(self.position[0], self.position[1], self.velocity[0], self.velocity[1], width=0.02, color='tab:red')
