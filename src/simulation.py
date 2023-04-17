@@ -101,39 +101,15 @@ class Simulator:
             if isinstance(distance, np.ndarray):
                 distance = distance[0]
 
-            ax_env.set_title(f"distance: {distance:0.3f} [m]")
+            ax_env.set_title(f"Robot position")
+            ax_force.set_title("Repulsive force magnitude")
+            ax_headings.set_title("Robot wander and avoid headings")
+            fig.tight_layout()
             return fig,
 
         animated = animation.FuncAnimation(fig, animate, init_func=init, frames=len(self.render_artifacts), interval=1, blit=True)
         animated.save(save_path, fps=30, extra_args=['-vcodec', 'libx264'], writer='ffmpeg')
 
-
-    def create_animation2(self) -> None:
-        save_path: os.PathLike = os.path.join(self.artifact_path, "animation2.mp4")
-
-        fig, ax = plt.subplots(nrows=1, ncols=1)
-
-        def init():
-            self.environment.draw(ax)
-            return fig,
-
-        def animate(i):
-            ax.clear()
-            self.environment.draw(ax)
-            vehicles: Sequence[Vehicle] = self.render_artifacts[i]
-            for vehicle in vehicles:
-                vehicle.draw(ax)
-
-
-            distance: float = vehicles[0].sensors[0].read()
-            if isinstance(distance, np.ndarray):
-                distance = distance[0]
-
-            ax.set_title(f"distance: {distance:0.3f} [m]")
-            return fig,
-
-        animated = animation.FuncAnimation(fig, animate, init_func=init, frames=len(self.render_artifacts), interval=1, blit=True)
-        animated.save(save_path, fps=30, extra_args=['-vcodec', 'libx264'], writer='ffmpeg')
 
     def reset(self) -> None: 
         self.current_step: int = 0 
