@@ -10,6 +10,13 @@ double norm(std::vector<double> arr) {
     return sqrt(out); 
 }
 
+template <typename T> 
+void print_vector(std::vector<T> items) {
+    std::cout << "("; 
+    for (auto x : items) std::cout << x << " "; 
+    std::cout << ")" << std::endl; 
+}
+
 Controller::Controller(
         float collide_distance_threshold, 
         float runaway_force_threshold, 
@@ -26,6 +33,8 @@ Controller::Controller(
     sonar_radian_offsets = {0, 90, 180, 270}; 
     sonar_basis_vectors = {{0, 1}}; 
     previous_wander = {0, 0}; 
+    previous_time = 0.0f; 
+    previous_wander_time = -10.0f; 
 }
 
 Controller::~Controller() {}; 
@@ -84,5 +93,55 @@ std::vector<double> Controller::avoid(std::vector<double> force, std::vector<dou
 
     return zeros;
 }
-void Controller::reset() {} 
-std::vector<double> Controller::call(std::vector<double>) {} 
+void Controller::reset() {
+    previous_heading = {0, 0}; 
+}
+
+std::vector<double> Controller::call(std::vector<double> distances) {
+    float time = previous_time; 
+    bool halt = this->collide(distances); 
+    std::vector<double> zeros(2, 0); 
+    std::vector<double> velocity(2, 0); 
+
+    if ((norm(previous_heading) > 0) && halt) {
+        std::cout << time << " (halting)" << std::endl; 
+    } else {
+        std::vector<double> force = this->feel_force(distances); 
+        std::vector<double> runaway_heading = this->runaway(force); 
+        std::cout << time << " force experienced: ";
+        print_vector(force); 
+
+        std::vector<double> wander_heading(previous_wander.size(), 0); 
+
+        if ((time - previous_wander_time) >= 1.0) wander_heading = this->wander(); 
+        else wander_heading = previous_wander; 
+
+        std::cout << time << " new wander heading: "; 
+        print_vector(wander_heading); 
+
+        std::vector<double> avoid_heading = this->avoid(force, wander_heading); 
+        std::cout << time << " new avoid heading: "; 
+        print_vector(avoid_heading); 
+
+        previous_wander_time = time; 
+        previous_avoid_heading = avoid_heading; 
+        velocity = previous_avoid_heading; 
+        std::cout << time << " running away + avoiding" << std::endl; 
+    }
+
+    double velocity_norm = norm(velocity); 
+    double divisor = 1.0; 
+    bool any_positive_velocity = false; 
+
+    for (int i=0; i < velocity.size(); ++i) if (velocity[i] > 0.0) any_positive_velocity = true; 
+
+    if (any_positive_velocity) divisor = velocity_norm; 
+
+    for (int i=0; i < velocity.size(); ++i) velocity[i] = 0.5 * (velocity[i] / divisor); 
+
+    previous_heading = velocity; 
+    previous_time = time + 0.1; 
+    std::cout << "velocity: "; 
+    print_vector(velocity); 
+    return velocity; 
+}
