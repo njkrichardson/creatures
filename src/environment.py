@@ -38,6 +38,9 @@ class Wall:
 
         return intersections
 
+    def translate(self, translation: np.ndarray) -> None: 
+        self.endpoints += translation
+
     def draw(self, ax) -> None: 
         ax.plot(self.endpoints[0], self.endpoints[1], c="k")
 
@@ -62,6 +65,7 @@ class BoxEnvironment(Environment):
         bottom_right: ndarray = np.array([wall_length / 2., -wall_length / 2.])
         top_right: ndarray = np.array([wall_length / 2., wall_length / 2.])
         top_left: ndarray = np.array([-wall_length / 2., wall_length / 2.])
+        self.origin = np.zeros(2)
 
         up: ndarray = np.array([0., 1.])
         down: ndarray = np.array([0., -1.])
@@ -75,13 +79,18 @@ class BoxEnvironment(Environment):
             Wall(endpoints=np.array([top_left, bottom_left]), inside_normal=right), 
         ]
 
+    def translate(self, translation: np.ndarray) -> None: 
+        self.origin = translation 
+        for wall in self._walls: 
+            wall.translate(translation)
+
     def __repr__(self) -> str: 
         return f"{self.__class__.__name__}(wall_length={self.wall_length})"
 
     def inside(self, point: ndarray) -> bool: 
         half_wall_length: float = self.wall_length / 2. 
-        within_width: bool = ((point[0] < half_wall_length) and (point[0] > -half_wall_length))
-        within_height: bool = ((point[1] < half_wall_length) and (point[1] > -half_wall_length))
+        within_width: bool = (((point[0] - self.origin[0]) < half_wall_length) and ((point[0] - self.origin[0]) > -half_wall_length))
+        within_height: bool = (((point[1] - self.origin[1]) < half_wall_length) and ((point[1] - self.origin[1]) > -half_wall_length))
         return (within_width and within_height)
 
     def distance_to_boundary(self, point: ndarray, direction: ndarray) -> float: 
@@ -92,8 +101,42 @@ class BoxEnvironment(Environment):
             if len(intersection) != 0: 
                 distances.append(np.linalg.norm(intersection[0] - point))
 
-        return min(distances)
+        if len(distances) > 0: 
+            return min(distances)
+        else: 
+            return [np.inf]
 
     def draw(self, ax) -> None: 
         for wall in self._walls: 
             wall.draw(ax)
+
+
+class CompositeEnvironment(Environment): 
+    def __init__(self, boxes: Sequence[BoxEnvironment], box_origins: Sequence[np.ndarray], exterior_wall_length: float) -> None: 
+        self.exterior: BoxEnvironment = BoxEnvironment(exterior_wall_length)
+        self.obstacles: Sequence[BoxEnvironment] = boxes 
+
+        for obstacle, translation in zip(self.obstacles, box_origins): 
+            obstacle.translate(translation)
+
+    def inside(self, point: np.ndarray) -> bool: 
+        is_inside: bool = self.exterior.inside(point)
+
+        for obstacle in self.obstacles: 
+            if obstacle.inside(point): is_inside = False
+
+        return is_inside
+
+    def distance_to_boundary(self, point: ndarray, direction: ndarray) -> float: 
+        distance: float = self.exterior.distance_to_boundary(point, direction) 
+
+        for obstacle in self.obstacles: 
+            obstacle_distance: float = obstacle.distance_to_boundary(point, direction) 
+            if (obstacle_distance < distance): distance = obstacle_distance
+
+        return distance 
+
+    def draw(self, ax) -> None: 
+        self.exterior.draw(ax)
+        for obstacle in self.obstacles: 
+            obstacle.draw(ax)

@@ -1,8 +1,11 @@
 import argparse 
 import os 
+from typing import Sequence
+
+import numpy as np 
 
 from custom_logging import setup_logger
-from environment import Environment, BoxEnvironment
+from environment import Environment, BoxEnvironment, CompositeEnvironment
 from simulation import Simulator
 from vehicle import Vehicle, SimpleCar
 from typedefs import namespace
@@ -21,7 +24,12 @@ def main(args: namespace):
 
     # configure the environment geometry 
     wall_length: float = 5.0 # [m]
-    room: Environment = BoxEnvironment(wall_length)
+    obstacles: Sequence[BoxEnvironment] = [BoxEnvironment(0.5)]
+    obstacle_locations: np.ndarray = np.array([
+        [1., 1.]
+    ])
+    room: Environment = CompositeEnvironment(obstacles, obstacle_locations, wall_length)
+    # room: Environment = BoxEnvironment(wall_length)
     log.info(f"Environment: {room}")
 
     # configure the vehicle 

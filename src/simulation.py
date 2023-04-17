@@ -15,7 +15,7 @@ from vehicle import Vehicle, SimpleCar
 matplotlib.use("Agg")
 
 class Simulator: 
-    step_duration: float = 1.0 # [s] 
+    step_duration: float = 0.100 # [s] 
 
     def __init__(self, environment: Optional[Environment]=None, vehicles: Optional[Sequence[Vehicle]]=None, artifact_path: Optional[os.PathLike]=None) -> None: 
         self.current_step: int = 0 
@@ -85,7 +85,8 @@ class Simulator:
             return fig,
 
         interval: int = max(1, len(self.render_artifacts) / 20)
-        frames: int = int(max(1, len(self.render_artifacts) / 20))
+        frames = len(self.render_artifacts)
+        # frames: int = int(max(1, len(self.render_artifacts) / 20))
 
         animated = animation.FuncAnimation(fig, animate, init_func=init, frames=frames, interval=1, blit=True)
         animated.save(save_path, fps=30, extra_args=['-vcodec', 'libx264'])
