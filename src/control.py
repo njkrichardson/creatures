@@ -58,3 +58,89 @@ class AvoidingController(HCS04Controller):
             new_velocity: ndarray = -self.previous_velocity 
             self.previous_velocity = new_velocity
             return new_velocity
+
+
+class Creature(HCS04Controller):
+    def __init__(self):
+        self.prev_wander_time: float = -10.0
+        self.sonar_radian_offsets: np.ndarray = np.array([0, 90, 180, 270])
+        self.num_sensors: int = 2
+        self.sonar_basis_vectors: np.ndarray = np.array([np.sin([0]), np.cos([0])]).T
+        self.collide_distance_threshold: float = 0.1
+        self.runaway_force_threshold: float = 0.1
+        self.significant_force_threshold: float = 0.0
+        self.avoid_supress_time: float = 0.5
+        self.prev_avoid_heading: np.ndarray = np.zeros(2)
+        self.prev_heading: np.ndarray = np.zeros(2)
+        self.prev_time: float = 0.0
+        self.prev_wander: np.ndarray = np.zeros(2)
+
+    def _feel_force(self, distances: np.ndarray) -> np.ndarray:
+
+        force_per_sensor: np.ndarray = -1.0 / (10*distances.reshape((-1,1))+ 0.001)**5
+
+        overall_force: np.ndarray = np.sum(self.sonar_basis_vectors * force_per_sensor, axis=0)
+        print("overall",overall_force, distances)
+        return overall_force
+
+    def _collide(self, distances: np.ndarray) -> bool:
+        halt: bool = distances[np.where(self.sonar_radian_offsets == 0.0)] < self.collide_distance_threshold
+        return halt
+
+    def _runaway(self, force: np.ndarray):
+        if np.linalg.norm(force) > self.runaway_force_threshold:
+            return force
+        else:
+            return np.zeros(2)
+
+    def _wander(self) -> np.ndarray:
+        wander_heading = self.prev_wander + np.array([np.random.uniform(-1,1), np.random.uniform(-1,1)])
+        wander_heading_normalized = wander_heading / np.linalg.norm(wander_heading)
+        self.prev_wander = wander_heading_normalized
+        return wander_heading_normalized
+
+    def _avoid(self, force: np.ndarray, heading: np.ndarray):
+        if np.linalg.norm(force + heading) > self.significant_force_threshold:
+            return force + heading
+        else:
+            return np.zeros(2)
+
+    def reset(self) -> None:
+        self.prev_heading: ndarray = None
+        # TODO implement me to reset any state variables
+        pass
+
+    def __call__(self, distances: ndarray):
+        time = self.prev_time
+        halt: bool = self._collide(distances)
+
+        if np.linalg.norm(self.prev_heading) > 0 and halt:
+            velocity = np.zeros(2)
+            print(time, "halting")
+        else:
+            force: np.ndarray = self._feel_force(distances)
+            runaway_heading = self._runaway(force)
+            print(time, "force experienced", force)
+            if time - self.prev_wander_time >= 1.0:
+                wander_heading = self._wander()
+            else:
+                wander_heading = self.prev_wander
+
+            print(time, "new wander heading", wander_heading)
+            avoid_heading = self._avoid(force, wander_heading)
+            print(time, "new avoid heading", avoid_heading)
+            self.prev_wander_time = time
+            self.prev_avoid_heading = avoid_heading
+
+            # if (time - self.prev_wander_time) > self.avoid_supress_time:
+            #     velocity = runaway_heading
+            #     print(time, "running away")
+            # else:
+            velocity = self.prev_avoid_heading
+            print(time, "running away + avoiding")
+
+        velocity = 0.5 * (velocity / (np.linalg.norm(velocity) if np.any(velocity > 0) else 1.0))
+        self.prev_heading = velocity
+        self.prev_time = time + 0.1
+        print(velocity)
+        return velocity
