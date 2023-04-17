@@ -12,6 +12,7 @@ parser = argparse.ArgumentParser()
 
 # visuals
 parser.add_argument("--save_animation", action="store_true")
+parser.add_argument("--num_steps", type=int, default=100)
 
 def main(args: namespace): 
     # logging 
@@ -31,7 +32,7 @@ def main(args: namespace):
     simulator: Simulator = Simulator(room, vehicle, experiment_directory)
     log.info("configured simulator")
 
-    simulator.simulate(100, save_artifacts=args.save_animation)
+    simulator.simulate(args.num_steps, save_artifacts=args.save_animation)
 
     if args.save_animation: 
         log.info("animating simulation history")

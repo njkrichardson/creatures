@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np 
 
 from control import HCS04Controller, AvoidingController
+from control_c import Controller 
 from sensor import Sensor, HCS04
 from typedefs import ndarray 
 
@@ -42,7 +43,7 @@ class SimpleCar(Vehicle):
 
         # publice: sensor/control suite 
         self.sensors: Sequence[Sensor] = [HCS04()] 
-        self.controller: HCS04Controller = AvoidingController()
+        self.controller: HCS04Controller = Controller()
 
         self.configure_sensors()
         self.configure_controller()
@@ -82,7 +83,8 @@ class SimpleCar(Vehicle):
             sensor.heading = self._heading
 
     def configure_controller(self) -> None: 
-        self.controller.register_headings(np.array([sensor.heading for sensor in self.sensors]))
+        pass
+        # self.controller.register_headings(np.array([sensor.heading for sensor in self.sensors]))
 
     def draw(self, ax) -> None: 
         ax.scatter(self.position[0], self.position[1], marker="o", s=100)

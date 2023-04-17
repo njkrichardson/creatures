@@ -10,7 +10,7 @@ import numpy as np
 
 from environment import Environment
 from typedefs import ndarray
-from vehicle import Vehicle
+from vehicle import Vehicle, SimpleCar
 
 matplotlib.use("Agg")
 
@@ -40,9 +40,15 @@ class Simulator:
 
         vehicle_copies: Sequence[Vehicle] = [] 
         for vehicle in self.vehicles: 
-            vehicle_copy: Vehicle = copy.deepcopy(vehicle) 
-            vehicle_copy.controller = None 
-            vehicle_copies.append(vehicle_copy)
+            try: 
+                # TODO NJKR be smarter...
+                vehicle_copy: Vehicle = SimpleCar() 
+                vehicle_copy.position = vehicle.position 
+                vehicle_copy.velocity = vehicle.velocity 
+                vehicle_copy._heading = vehicle._heading
+                vehicle_copies.append(vehicle_copy)
+            except AttributeError as e: 
+                raise e
 
         self.render_artifacts.append(vehicle_copies)
 
@@ -76,7 +82,10 @@ class Simulator:
                 vehicle.draw(ax)
             return fig,
 
-        animated = animation.FuncAnimation(fig, animate, init_func=init, frames=len(self.render_artifacts), interval=1, blit=True)
+        interval: int = max(1, len(self.render_artifacts) / 20)
+        frames: int = int(max(1, len(self.render_artifacts) / 20))
+
+        animated = animation.FuncAnimation(fig, animate, init_func=init, frames=frames, interval=1, blit=True)
         animated.save(save_path, fps=30, extra_args=['-vcodec', 'libx264'])
 
     def reset(self) -> None: 
