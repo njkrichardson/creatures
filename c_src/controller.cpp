@@ -25,6 +25,7 @@ Controller::Controller(
 {
     sonar_radian_offsets = {0, 90, 180, 270}; 
     sonar_basis_vectors = {{0, 1}}; 
+    previous_wander = {0, 0}; 
 }
 
 Controller::~Controller() {}; 
@@ -50,8 +51,31 @@ bool Controller::collide(std::vector<double> distances) {
     return distances[0] < collide_distance_threshold; 
 }
 
-std::vector<double> Controller::runaway(std::vector<double>) {}
-std::vector<double> Controller::wander() {}
+std::vector<double> Controller::runaway(std::vector<double> force) {
+    if (norm(force) > runaway_force_threshold) return force; 
+    std::vector<double> zeros(2, 0); 
+    return zeros; 
+}
+
+std::vector<double> Controller::wander() {
+    size_t wander_size = previous_wander.size(); 
+    std::vector<double> wander_heading(wander_size, 0); 
+
+    std::vector<double> random_direction(2, 0); 
+    for (int j=0; j < 2; ++j) random_direction[j] = (((double)rand()/(double)RAND_MAX) * 2.0) - 1.0; 
+
+    for (int i=0; i < wander_size; ++i) {
+        wander_heading[i] = previous_wander[i] + random_direction[i]; 
+    }
+    std::cout << "heading 0: " << wander_heading[0] << std::endl; 
+    std::cout << "heading 1: " << wander_heading[1] << std::endl; 
+
+    double wander_heading_norm = norm(wander_heading); 
+
+    for (int i=0; i < wander_size; ++i) wander_heading[i] = wander_heading[i] / wander_heading_norm; 
+    return wander_heading; 
+}
+
 std::vector<double> Controller::avoid(std::vector<double>, std::vector<double>) {}
 void Controller::reset() {} 
 std::vector<double> Controller::call(std::vector<double>) {} 
