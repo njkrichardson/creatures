@@ -67,8 +67,6 @@ std::vector<double> Controller::wander() {
     for (int i=0; i < wander_size; ++i) {
         wander_heading[i] = previous_wander[i] + random_direction[i]; 
     }
-    std::cout << "heading 0: " << wander_heading[0] << std::endl; 
-    std::cout << "heading 1: " << wander_heading[1] << std::endl; 
 
     double wander_heading_norm = norm(wander_heading); 
 
