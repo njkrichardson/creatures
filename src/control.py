@@ -3,7 +3,7 @@ from typing import Optional, List
 
 import numpy as np 
 
-from typedefs import ndarray
+from src.typedefs import ndarray
 
 class HCS04Controller(ABC): 
     def register_headings(self, headings: ndarray) -> None: 
@@ -33,6 +33,7 @@ class HCS04Controller(ABC):
             a 2-vector representing the velocity control signal. 
         """
         raise NotImplementedError 
+
 
 class AvoidingController(HCS04Controller): 
     def __init__(self, headings: Optional[ndarray]=None) -> None: 
@@ -77,6 +78,7 @@ class Creature(HCS04Controller):
 
         self.avoid_history: List[np.ndarray] = []
         self.wander_history: List[np.ndarray] = []
+        self.force_mag_history: List[np.ndarray] = []
         self.force_history: List[np.ndarray] = []
 
     def _feel_force(self, distances: np.ndarray) -> np.ndarray:
@@ -122,6 +124,8 @@ class Creature(HCS04Controller):
         #if np.linalg.norm(self.prev_heading) > 0 and halt:
         #    velocity = np.zeros(2)
         force: np.ndarray = self._feel_force(distances)
+        self.force_mag_history.append(np.linalg.norm(force))
+        self.force_history.append(force)
         print(time, "force experienced", force)
         if time - self.prev_wander_time >= 4.0:
             wander_heading = self._wander()
