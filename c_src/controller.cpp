@@ -74,6 +74,15 @@ std::vector<double> Controller::wander() {
     return wander_heading; 
 }
 
-std::vector<double> Controller::avoid(std::vector<double>, std::vector<double>) {}
+std::vector<double> Controller::avoid(std::vector<double> force, std::vector<double> heading) {
+    size_t force_size = force.size(); 
+    std::vector<double> force_plus_heading(force_size, 0); 
+    std::vector<double> zeros(2, 0); 
+
+    for (int i=0; i < force_size; ++i) force_plus_heading[i] = force[i] + heading[i]; 
+    if (norm(force_plus_heading) > significant_force_threshold) return force_plus_heading; 
+
+    return zeros;
+}
 void Controller::reset() {} 
 std::vector<double> Controller::call(std::vector<double>) {} 
