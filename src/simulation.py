@@ -44,19 +44,20 @@ class Simulator:
         if not hasattr(self, "render_artifacts"): 
             self.render_artifacts: List[Sequence[Vehicle]] = [] 
 
-        vehicle_copies: Sequence[Vehicle] = [] 
-        for vehicle in self.vehicles: 
-            try: 
-                # TODO NJKR be smarter...
-                vehicle_copy: Vehicle = SimpleCar() 
-                vehicle_copy.position = vehicle.position 
-                vehicle_copy.velocity = vehicle.velocity 
-                vehicle_copy._heading = vehicle._heading
-                vehicle_copies.append(vehicle_copy)
-            except AttributeError as e: 
-                raise e
+        # vehicle_copies: Sequence[Vehicle] = [] 
+        # for vehicle in self.vehicles: 
+        #     try: 
+        #         # TODO NJKR be smarter...
+        #         vehicle_copy: Vehicle = SimpleCar() 
+        #         vehicle_copy.position = vehicle.position 
+        #         vehicle_copy.velocity = vehicle.velocity 
+        #         vehicle_copy._heading = vehicle._heading
+        #         vehicle_copies.append(vehicle_copy)
+        #     except AttributeError as e: 
+        #         raise e
 
-        self.render_artifacts.append(vehicle_copies)
+        # self.render_artifacts.append(vehicle_copies)
+        self.render_artifacts.append(copy.deepcopy(self.vehicles))
 
     def render(self) -> None: 
         save_path: os.PathLike = os.path.join(self.artifact_path, f"step_{self.current_step}")
@@ -160,8 +161,12 @@ class Simulator:
                 distance_measurements[i] = sensor.read()
 
             # in Vehicle basis
+            # control_signal: ndarray = vehicle.controller(distance_measurements)
+            # if isinstance(control_signal, list): control_signal = np.array(control_signal)
+            # in world basis
+
+            # in Vehicle basis
             control_signal: ndarray = vehicle.controller(distance_measurements)
-            if isinstance(control_signal, list): control_signal = np.array(control_signal)
             # in world basis
             control_signal_world_basis = np.column_stack((rotation.dot(self.prev_vehicle_velocities[i]), self.prev_vehicle_velocities[i]))
             control_signal = control_signal_world_basis.dot(control_signal)
@@ -173,12 +178,5 @@ class Simulator:
 
             self.prev_vehicle_velocities[i] = vehicle.velocity / np.linalg.norm(vehicle.velocity) if np.any(vehicle.velocity != 0) else self.prev_vehicle_velocities[i]
 
-            # in world basis
-            control_signal_world_basis = np.column_stack((rotation.dot(self.prev_vehicle_velocities[i]), self.prev_vehicle_velocities[i])).dot(control_signal)
-            control_signal_world_basis = 0.1 * control_signal_world_basis / (np.linalg.norm(control_signal_world_basis) if np.any(control_signal_world_basis != 0) else 1.0)
-            vehicle.velocity = (vehicle.velocity + control_signal_world_basis) / 2
-
-            self.prev_vehicle_velocities[i] = vehicle.velocity if np.any(vehicle.velocity != 0) else self.prev_vehicle_velocities[i]
- 
 
         self.current_step += 1
