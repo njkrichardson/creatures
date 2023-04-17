@@ -4,9 +4,9 @@ from typing import Sequence
 import matplotlib.pyplot as plt 
 import numpy as np 
 
-from control import HCS04Controller, AvoidingController
-from sensor import Sensor, HCS04
-from typedefs import ndarray 
+from src.control import HCS04Controller, AvoidingController, Creature
+from src.sensor import Sensor, HCS04
+from src.typedefs import ndarray
 
 class Vehicle(ABC): 
     @property
@@ -42,7 +42,7 @@ class SimpleCar(Vehicle):
 
         # publice: sensor/control suite 
         self.sensors: Sequence[Sensor] = [HCS04()] 
-        self.controller: HCS04Controller = AvoidingController()
+        self.controller: HCS04Controller = Creature()
 
         self.configure_sensors()
         self.configure_controller()

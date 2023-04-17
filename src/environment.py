@@ -5,9 +5,9 @@ from typing import List, Optional, Sequence, Tuple
 import matplotlib.pyplot as plt
 import numpy as np 
 
-from sensor import Sensor 
-from vehicle import Vehicle
-from typedefs import ndarray
+from src.sensor import Sensor
+from src.vehicle import Vehicle
+from src.typedefs import ndarray
 
 normalize: callable = lambda x: x / np.linalg.norm(x)
 

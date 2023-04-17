@@ -8,14 +8,14 @@ from matplotlib import animation
 import matplotlib.pyplot as plt 
 import numpy as np
 
-from environment import Environment
-from typedefs import ndarray
-from vehicle import Vehicle
+from src.environment import Environment
+from src.typedefs import ndarray
+from src.vehicle import Vehicle
 
 matplotlib.use("Agg")
 
 class Simulator: 
-    step_duration: float = 1.0 # [s] 
+    step_duration: float = 0.1 # [s]
 
     def __init__(self, environment: Optional[Environment]=None, vehicles: Optional[Sequence[Vehicle]]=None, artifact_path: Optional[os.PathLike]=None) -> None: 
         self.current_step: int = 0 
@@ -24,8 +24,14 @@ class Simulator:
 
         if ((vehicles is not None) and (not isinstance(vehicles, list))): 
             self.vehicles = [vehicles]
-        else: 
-            self.vehicles = vehicles 
+        else:
+            self.vehicles = vehicles
+
+        self.prev_vehicle_velocities = [v.controller.prev_heading for v in self.vehicles]
+
+        self.prev_vehicle_wander_headings = []
+        self.prev_vehicle_force_headings = []
+
 
     def __repr__(self) -> str: 
         return f"{self.__class__.__name__}(environment={self.environment}, vehicles={self.vehicles})"
@@ -56,6 +62,55 @@ class Simulator:
     def create_animation(self) -> None: 
         save_path: os.PathLike = os.path.join(self.artifact_path, "animation.mp4")
 
+        fig, axs = plt.subplots(nrows=1, ncols=3)
+        ax_env = axs[0]
+        ax_force = axs[1]
+        ax_headings = axs[2]
+        max_heading = np.max(np.abs(np.array([self.prev_vehicle_wander_headings, self.prev_vehicle_force_headings])))
+        def init():
+
+            self.environment.draw(ax_env)
+            ax_force.set_xlim((0, len(self.render_artifacts)*self.step_duration))
+            ax_force.set_ylim((0, np.max(np.array(self.render_artifacts[-1][0].controller.force_mag_history))))
+            ax_headings.set_xlim((-max_heading,max_heading))
+            ax_headings.set_ylim((-max_heading,max_heading))
+
+            return fig,
+
+        def animate(i):
+            ax_env.clear()
+            ax_force.clear()
+            ax_headings.clear()
+            ax_force.set_xlim((0, len(self.render_artifacts)*self.step_duration))
+            ax_force.set_ylim((0, np.max(np.array(self.render_artifacts[-1][0].controller.force_mag_history))))
+            ax_headings.set_xlim((-max_heading, max_heading))
+            ax_headings.set_ylim((-max_heading, max_heading))
+
+            self.environment.draw(ax_env)
+            vehicles: Sequence[Vehicle] = self.render_artifacts[i]
+            for vehicle in vehicles: 
+                vehicle.draw(ax_env)
+                ax_force.plot(np.arange(i) * self.step_duration, vehicle.controller.force_mag_history[:i+1])
+                ax_headings.arrow(0, 0, self.prev_vehicle_wander_headings[i][0], self.prev_vehicle_wander_headings[i][1], width=0.02,
+                         color='green')
+                ax_headings.arrow(0, 0, self.prev_vehicle_force_headings[i][0],
+                                  self.prev_vehicle_force_headings[i][1], width=0.02,
+                                  color='red')
+
+            distance: float = vehicles[0].sensors[0].read()
+            if isinstance(distance, np.ndarray):
+                distance = distance[0]
+
+            ax_env.set_title(f"distance: {distance:0.3f} [m]")
+            return fig,
+
+        animated = animation.FuncAnimation(fig, animate, init_func=init, frames=len(self.render_artifacts), interval=1, blit=True)
+        animated.save(save_path, fps=30, extra_args=['-vcodec', 'libx264'], writer='ffmpeg')
+
+
+    def create_animation2(self) -> None:
+        save_path: os.PathLike = os.path.join(self.artifact_path, "animation2.mp4")
+
         fig, ax = plt.subplots(nrows=1, ncols=1)
 
         def init():
@@ -66,12 +121,19 @@ class Simulator:
             ax.clear()
             self.environment.draw(ax)
             vehicles: Sequence[Vehicle] = self.render_artifacts[i]
-            for vehicle in vehicles: 
+            for vehicle in vehicles:
                 vehicle.draw(ax)
+
+
+            distance: float = vehicles[0].sensors[0].read()
+            if isinstance(distance, np.ndarray):
+                distance = distance[0]
+
+            ax.set_title(f"distance: {distance:0.3f} [m]")
             return fig,
 
         animated = animation.FuncAnimation(fig, animate, init_func=init, frames=len(self.render_artifacts), interval=1, blit=True)
-        animated.save(save_path, fps=30, extra_args=['-vcodec', 'libx264'])
+        animated.save(save_path, fps=30, extra_args=['-vcodec', 'libx264'], writer='ffmpeg')
 
     def reset(self) -> None: 
         self.current_step: int = 0 
@@ -83,14 +145,17 @@ class Simulator:
         for _ in range(num_steps): 
             self.step(**kwargs)
 
-    def step(self, **kwargs) -> None: 
-        for vehicle in self.vehicles: 
+    def step(self, **kwargs) -> None:
+        rotation = np.array([[0, 1], [-1, 0]])
+
+        for i, vehicle in enumerate(self.vehicles):
             if kwargs.get("save_artifacts", False): 
                 self.save_render_artifacts()
 
             # move the vehicle based on its current velocity 
             try: 
                 vehicle.position += vehicle.velocity * self.step_duration
+                print("pos", vehicle.position)
                 if (not self.environment.inside(vehicle.position)): 
                     raise ValueError
             except ValueError: 
@@ -106,7 +171,17 @@ class Simulator:
                 sensor.write(sensor_reading)
                 distance_measurements[i] = sensor.read()
 
+            # in Vehicle basis
             control_signal: ndarray = vehicle.controller(distance_measurements)
-            vehicle.velocity = control_signal 
+            # in world basis
+            control_signal_world_basis = np.column_stack((rotation.dot(self.prev_vehicle_velocities[i]), self.prev_vehicle_velocities[i]))
+            control_signal = control_signal_world_basis.dot(control_signal)
+            control_signal = 0.1 * control_signal / (np.linalg.norm(control_signal) if np.any(control_signal != 0) else 1.0)
+            vehicle.velocity = (vehicle.velocity + control_signal) / 2
+
+            self.prev_vehicle_force_headings.append(control_signal_world_basis.dot(vehicle.controller.force_history[-1]))
+            self.prev_vehicle_wander_headings.append(control_signal_world_basis.dot(vehicle.controller.wander_history[-1]))
+
+            self.prev_vehicle_velocities[i] = vehicle.velocity / np.linalg.norm(vehicle.velocity) if np.any(vehicle.velocity != 0) else self.prev_vehicle_velocities[i]
 
         self.current_step += 1

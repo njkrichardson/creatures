@@ -1,17 +1,17 @@
 import argparse 
 import os 
 
-from custom_logging import setup_logger
-from environment import Environment, BoxEnvironment
-from simulation import Simulator
-from vehicle import Vehicle, SimpleCar
-from typedefs import namespace
-from utils import setup_experiment_directory, get_now_str
+from src.custom_logging import setup_logger
+from src.environment import Environment, BoxEnvironment
+from src.simulation import Simulator
+from src.vehicle import Vehicle, SimpleCar
+from src.typedefs import namespace
+from src.utils import setup_experiment_directory, get_now_str
 
 parser = argparse.ArgumentParser()
 
 # visuals
-parser.add_argument("--save_animation", action="store_true")
+parser.add_argument("--save_animation", action="store_true", default=True)
 
 def main(args: namespace): 
     # logging 
