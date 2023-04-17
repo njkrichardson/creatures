@@ -1,0 +1,8 @@
+name: cos598
+channels:
+  - defaults
+dependencies:
+  - matplotlib=3.7.1
+  - numpy=1.23.5
+  - setuptools=65.6.3
+prefix: cos598
