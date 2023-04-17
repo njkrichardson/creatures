@@ -32,15 +32,11 @@ Controller::~Controller() {};
 
 std::vector<double> Controller::feel_force(std::vector<double> distances) { 
     size_t num_distances = distances.size(); 
-
+    std::vector<std::vector<double>> directional_forces(sonar_basis_vectors.size(), std::vector<double>(2)); 
+    std::vector<double> overall_force(2, 0); 
     std::vector<double> force_per_sensor(num_distances, 0); 
 
     for (int i=0; i < num_distances; ++i) force_per_sensor[i] = -1.0 / pow((10.0 * distances[i] + 0.001), 5); 
-
-    std::vector<std::vector<double>> directional_forces(sonar_basis_vectors.size(), std::vector<double>(2)); 
-
-    std::vector<double> overall_force(2, 0); 
-
     for (int i=0; i < num_distances; ++i) {
         for (int j=0; j < 2; ++j) {
             overall_force[j] += sonar_basis_vectors[i][j] * force_per_sensor[i]; 
@@ -49,7 +45,11 @@ std::vector<double> Controller::feel_force(std::vector<double> distances) {
     return overall_force; 
 }
 
-bool Controller::collide(std::vector<double>) {}
+bool Controller::collide(std::vector<double> distances) {
+    // Note: assumes that the first index of distances holds the sensor with 0 offset 
+    return distances[0] < collide_distance_threshold; 
+}
+
 std::vector<double> Controller::runaway(std::vector<double>) {}
 std::vector<double> Controller::wander() {}
 std::vector<double> Controller::avoid(std::vector<double>, std::vector<double>) {}
