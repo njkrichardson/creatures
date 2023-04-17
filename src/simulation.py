@@ -101,6 +101,7 @@ class Simulator:
             self.step(**kwargs)
 
     def step(self, **kwargs) -> None: 
+        rotation = np.array([[0, 1], [-1, 0]])
         for vehicle in self.vehicles: 
             if kwargs.get("save_artifacts", False): 
                 self.save_render_artifacts()
