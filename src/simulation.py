@@ -26,6 +26,8 @@ class Simulator:
             self.vehicles = [vehicles]
         else: 
             self.vehicles = vehicles 
+        
+        self.prev_vehicle_velocities = [v.controller.prev_heading for v in self.vehicles]
 
     def __repr__(self) -> str: 
         return f"{self.__class__.__name__}(environment={self.environment}, vehicles={self.vehicles})"
@@ -123,6 +125,13 @@ class Simulator:
 
             control_signal: ndarray = vehicle.controller(distance_measurements)
             if isinstance(control_signal, list): control_signal = np.array(control_signal)
-            vehicle.velocity = control_signal 
+
+            # in world basis
+            control_signal_world_basis = np.column_stack((rotation.dot(self.prev_vehicle_velocities[i]), self.prev_vehicle_velocities[i])).dot(control_signal)
+            control_signal_world_basis = 0.1 * control_signal_world_basis / (np.linalg.norm(control_signal_world_basis) if np.any(control_signal_world_basis != 0) else 1.0)
+            vehicle.velocity = (vehicle.velocity + control_signal_world_basis) / 2
+
+            self.prev_vehicle_velocities[i] = vehicle.velocity if np.any(vehicle.velocity != 0) else self.prev_vehicle_velocities[i]
+ 
 
         self.current_step += 1
