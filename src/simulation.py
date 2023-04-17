@@ -38,7 +38,13 @@ class Simulator:
         if not hasattr(self, "render_artifacts"): 
             self.render_artifacts: List[Sequence[Vehicle]] = [] 
 
-        self.render_artifacts.append(copy.deepcopy(self.vehicles))
+        vehicle_copies: Sequence[Vehicle] = [] 
+        for vehicle in self.vehicles: 
+            vehicle_copy: Vehicle = copy.deepcopy(vehicle) 
+            vehicle_copy.controller = None 
+            vehicle_copies.append(vehicle_copy)
+
+        self.render_artifacts.append(vehicle_copies)
 
     def render(self) -> None: 
         save_path: os.PathLike = os.path.join(self.artifact_path, f"step_{self.current_step}")
@@ -107,6 +113,7 @@ class Simulator:
                 distance_measurements[i] = sensor.read()
 
             control_signal: ndarray = vehicle.controller(distance_measurements)
+            if isinstance(control_signal, list): control_signal = np.array(control_signal)
             vehicle.velocity = control_signal 
 
         self.current_step += 1
