@@ -4,7 +4,7 @@ import os
 from typing import List, Optional, Sequence
 
 import matplotlib   
-from matplotlib import animation 
+from matplotlib import animation, gridspec
 import matplotlib.pyplot as plt 
 import numpy as np
 
@@ -74,12 +74,24 @@ class Simulator:
 
     def create_animation(self) -> None: 
         save_path: os.PathLike = os.path.join(self.artifact_path, "animation.mp4")
+        left = 0.125  # the left side of the subplots of the figure
+        right = 0.9  # the right side of the subplots of the figure
+        bottom = 0.1  # the bottom of the subplots of the figure
+        top = 0.9  # the top of the subplots of the figure
+        wspace = 0.5  # the amount of width reserved for blank space between subplots
+        hspace = 0.5  # the amount of height reserved for white space between subplots
+        #fig, axs = plt.subplots(nrows=1, ncols=3)
+        fig = plt.figure()
+        gs_overall = gridspec.GridSpec(1, 2)
+        axs = [plt.Subplot(fig, gs_i) for gs_i in gs_overall]
+        subplot_gs = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs_overall[1])
+        subplot_axs = [fig.add_subplot(axs[0])] + [fig.add_subplot(gs_i) for gs_i in subplot_gs]
+        ax_env = subplot_axs[0]
+        ax_force = subplot_axs[1]
+        ax_headings = subplot_axs[2]
+        max_heading = np.max(np.abs(np.array([self.prev_vehicle_wander_headings, self.prev_vehicle_force_headings]))) +0.5
+        plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
 
-        fig, axs = plt.subplots(nrows=1, ncols=3)
-        ax_env = axs[0]
-        ax_force = axs[1]
-        ax_headings = axs[2]
-        max_heading = np.max(np.abs(np.array([self.prev_vehicle_wander_headings, self.prev_vehicle_force_headings])))
         def init():
 
             self.environment.draw(ax_env)
@@ -87,6 +99,8 @@ class Simulator:
             ax_force.set_ylim((0, np.max(np.array(self.render_artifacts[-1][0].controller.force_mag_history))))
             ax_headings.set_xlim((-max_heading,max_heading))
             ax_headings.set_ylim((-max_heading,max_heading))
+            fig.tight_layout()
+            plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
 
             return fig,
 
@@ -118,6 +132,8 @@ class Simulator:
             ax_force.set_title("Repulsive force magnitude")
             ax_headings.set_title("Robot wander and avoid headings")
             fig.tight_layout()
+            plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
+
             return fig,
 
         animated = animation.FuncAnimation(fig, animate, init_func=init, frames=len(self.render_artifacts), interval=1, blit=True)
