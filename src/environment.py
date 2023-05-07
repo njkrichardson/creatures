@@ -42,7 +42,7 @@ class Wall:
         self.endpoints += translation
 
     def draw(self, ax) -> None: 
-        ax.plot(self.endpoints[0], self.endpoints[1], c="k")
+        ax.plot(self.endpoints[:, 0], self.endpoints[:, 1], c="k")
 
 class Environment(ABC): 
     @abstractmethod 
@@ -79,9 +79,9 @@ class BoxEnvironment(Environment):
             Wall(endpoints=np.array([top_left, bottom_left]), inside_normal=right), 
         ]
 
-    def translate(self, translation: np.ndarray) -> None: 
-        self.origin = translation 
-        for wall in self._walls: 
+    def translate(self, translation: np.ndarray) -> None:
+        self.origin = translation
+        for wall in self._walls:
             wall.translate(translation)
 
     def __repr__(self) -> str: 
