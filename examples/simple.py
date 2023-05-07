@@ -15,7 +15,7 @@ parser = argparse.ArgumentParser()
 
 # visuals
 parser.add_argument("--save_animation", action="store_true")
-parser.add_argument("--num_steps", type=int, default=100)
+parser.add_argument("--num_steps", type=int, default=500)
 
 def main(args: namespace): 
     # logging 
@@ -23,10 +23,10 @@ def main(args: namespace):
     log = setup_logger(__name__, custom_handle=os.path.join(experiment_directory, "log.out"))
 
     # configure the environment geometry 
-    wall_length: float = 5.0 # [m]
+    wall_length: float = 2.0 # [m]
     obstacles: Sequence[BoxEnvironment] = [BoxEnvironment(0.5)]
     obstacle_locations: np.ndarray = np.array([
-        [1., 1.]
+        [0.5, 0.0]
     ])
     room: Environment = CompositeEnvironment(obstacles, obstacle_locations, wall_length)
     # room: Environment = BoxEnvironment(wall_length)
@@ -42,7 +42,7 @@ def main(args: namespace):
 
     simulator.simulate(args.num_steps, save_artifacts=args.save_animation)
 
-    if args.save_animation: 
+    if args.save_animation:
         log.info("animating simulation history")
         simulator.create_animation()
         log.info("finished animation")

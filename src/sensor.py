@@ -61,6 +61,6 @@ class HCS04(DistanceSensor):
         if (value < self.minimum_range): 
             self._value = np.zeros(1)
         elif (value > self.maximum_range): 
-            self._value = self.maximum_range
+            self._value = np.ones(1)*100#self.maximum_range
         else: 
             self._value = value

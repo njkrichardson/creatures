@@ -64,9 +64,10 @@ class AvoidingController(HCS04Controller):
 class Creature(HCS04Controller):
     def __init__(self):
         self.prev_wander_time: float = -10.0
-        self.sonar_radian_offsets: np.ndarray = np.array([0, 90, 180, 270])
+        self.wander_period: float = 6.0
+        self.sonar_radian_offsets: np.ndarray = np.array([0, np.pi/2, np.pi, 3*np.pi/2])
         self.num_sensors: int = 2
-        self.sonar_basis_vectors: np.ndarray = np.array([np.sin([0]), np.cos([0])]).T
+        self.sonar_basis_vectors: np.ndarray = np.array([np.sin(self.sonar_radian_offsets), np.cos(self.sonar_radian_offsets)], dtype=int).T
         self.collide_distance_threshold: float = 0.1
         self.runaway_force_threshold: float = 0.1
         self.significant_force_threshold: float = 0.0
@@ -82,11 +83,9 @@ class Creature(HCS04Controller):
         self.force_history: List[np.ndarray] = []
 
     def _feel_force(self, distances: np.ndarray) -> np.ndarray:
-
-        force_per_sensor: np.ndarray = -1.0 / (distances.reshape((-1,1))+ 0.001)**2
-
+        force_per_sensor: np.ndarray = -0.001 / (distances.reshape((-1,1))+ 0.001)**5
         overall_force: np.ndarray = np.sum(self.sonar_basis_vectors * force_per_sensor, axis=0)
-        print("overall",overall_force, distances)
+        print("overall", overall_force)
         return overall_force
 
     def _collide(self, distances: np.ndarray) -> bool:
@@ -100,14 +99,16 @@ class Creature(HCS04Controller):
             return np.zeros(2)
 
     def _wander(self) -> np.ndarray:
-        wander_heading = np.array([np.random.uniform(-1,1), np.random.uniform(-1,1)])
-        wander_heading_normalized = wander_heading / np.linalg.norm(wander_heading)
-        self.prev_wander = wander_heading_normalized
-        return wander_heading_normalized
+        wander_force = np.array([np.random.uniform(-1,1), np.random.uniform(-1,1)])
+        wander_force_normalized = wander_force / np.linalg.norm(wander_force)
+        self.prev_wander = wander_force_normalized
+        return wander_force_normalized
 
-    def _avoid(self, force: np.ndarray, heading: np.ndarray):
-        if np.linalg.norm(force + heading) > self.significant_force_threshold:
-            return force + heading
+    def _avoid(self, avoid_force: np.ndarray, wander_force: np.ndarray):
+        combined = avoid_force + wander_force
+        combined_magnitude = np.linalg.norm(combined)
+        if combined_magnitude > self.significant_force_threshold:
+            return combined / combined_magnitude
         else:
             return np.zeros(2)
 
@@ -116,38 +117,49 @@ class Creature(HCS04Controller):
         # TODO implement me to reset any state variables
         pass
 
-    def __call__(self, distances: ndarray):
-        time = self.prev_time
-
+    def __call__(self, distances: ndarray, time: float):
+        print(distances)
         #halt: bool = self._collide(distances)
         # runaway_heading = self._runaway(force)
         #if np.linalg.norm(self.prev_heading) > 0 and halt:
         #    velocity = np.zeros(2)
-        force: np.ndarray = self._feel_force(distances)
-        self.force_mag_history.append(np.linalg.norm(force))
-        self.force_history.append(force)
-        print(time, "force experienced", force)
-        if time - self.prev_wander_time >= 4.0:
-            wander_heading = self._wander()
+
+        # -- get raw repulsive force (sum over sensors)
+        avoid_force: np.ndarray = self._feel_force(distances=distances)
+
+        # -- record force and force magnitude
+        self.force_history.append(avoid_force)
+        self.force_mag_history.append(np.linalg.norm(avoid_force))
+
+        print(time, "force experienced", avoid_force)
+
+        # -- generate new wander force (normalized) every wander period
+        if time - self.prev_wander_time >= self.wander_period:
+            wander_force = self._wander()
             self.prev_wander_time = time
         else:
-            wander_heading = np.array([0, 1])
+            # -- default wander is to go straight (i.e. prev wander heading is followed)
+            wander_force = np.array([0, 1])
 
-        print(time, "wander heading", wander_heading)
-        self.wander_history.append(wander_heading)
-        avoid_heading = self._avoid(force, wander_heading)
-        print(time, "avoid heading", avoid_heading)
+        self.wander_history.append(wander_force)
+
+        # -- combine wander and avoid forces, round to zero if threshold magnitude is not exceeded
+        # -- vector resulting from combining forces and normalizing is the final velocity
+        velocity = self._avoid(avoid_force=avoid_force, wander_force=wander_force)
+
+        print(time, "wander heading", wander_force)
+        print(time, "avoid heading", velocity)
             #self.prev_avoid_heading = avoid_heading
 
             # if (time - self.prev_wander_time) > self.avoid_supress_time:
             #     velocity = runaway_heading
             #     print(time, "running away")
             # else:
-        velocity = avoid_heading#self.prev_avoid_heading
+        #velocity = heading#self.prev_avoid_heading
             #print(time, "running away + avoiding")
 
-        velocity = 0.1 * (velocity / (np.linalg.norm(velocity) if np.any(velocity != 0) else 1.0))
+
+
         self.prev_heading = velocity
-        self.prev_time = time + 0.1
-        print(velocity)
+        self.prev_time = time
         return velocity

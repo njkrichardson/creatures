@@ -119,11 +119,12 @@ class Simulator:
                 vehicle.draw(ax_env)
                 ax_force.plot(np.arange(i) * self.step_duration, vehicle.controller.force_mag_history[:i+1])
                 ax_headings.arrow(0, 0, self.prev_vehicle_wander_headings[i][0], self.prev_vehicle_wander_headings[i][1], width=0.02,
-                         color='green')
+                         color='green', label="wander")
                 ax_headings.arrow(0, 0, self.prev_vehicle_force_headings[i][0],
                                   self.prev_vehicle_force_headings[i][1], width=0.02,
-                                  color='red')
+                                  color='red', label="avoid")
 
+            ax_headings.legend()
             distance: float = vehicles[0].sensors[0].read()
             if isinstance(distance, np.ndarray):
                 distance = distance[0]
@@ -169,12 +170,12 @@ class Simulator:
             # take a distance measurement from this position 
             distance_measurements = np.zeros(len(vehicle.sensors))
 
-            for i, sensor in enumerate(vehicle.sensors): 
+            for j, sensor in enumerate(vehicle.sensors):
                 sensor_position: ndarray = vehicle.position 
                 sensor_heading: ndarray = sensor.heading
                 sensor_reading: ndarray = self.environment.distance_to_boundary(sensor_position, sensor_heading)
                 sensor.write(sensor_reading)
-                distance_measurements[i] = sensor.read()
+                distance_measurements[j] = sensor.read()
 
             # in Vehicle basis
             # control_signal: ndarray = vehicle.controller(distance_measurements)
@@ -182,16 +183,21 @@ class Simulator:
             # in world basis
 
             # in Vehicle basis
-            control_signal: ndarray = vehicle.controller(distance_measurements)
+            control_signal: ndarray = vehicle.controller(distance_measurements, self.current_time)
             # in world basis
             control_signal_world_basis = np.column_stack((rotation.dot(self.prev_vehicle_velocities[i]), self.prev_vehicle_velocities[i]))
             control_signal = control_signal_world_basis.dot(control_signal)
-            control_signal = 0.1 * control_signal / (np.linalg.norm(control_signal) if np.any(control_signal != 0) else 1.0)
-            vehicle.velocity = (vehicle.velocity + control_signal) / 2
 
+            # -- normalize and scale
+            control_signal = 0.1 * control_signal / (np.linalg.norm(control_signal) if np.any(control_signal != 0) else 1.0)
+            # -- update vehicle velocity to linear combination of previous and new velocity
+            vehicle.velocity = control_signal#(vehicle.velocity + control_signal) / 2
+
+            # -- record
             self.prev_vehicle_force_headings.append(control_signal_world_basis.dot(vehicle.controller.force_history[-1]))
             self.prev_vehicle_wander_headings.append(control_signal_world_basis.dot(vehicle.controller.wander_history[-1]))
 
+            # -- store
             self.prev_vehicle_velocities[i] = vehicle.velocity / np.linalg.norm(vehicle.velocity) if np.any(vehicle.velocity != 0) else self.prev_vehicle_velocities[i]
 
 

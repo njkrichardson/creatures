@@ -42,7 +42,9 @@ class SimpleCar(Vehicle):
         self._heading: ndarray = np.array([0., 1.])
 
         # publice: sensor/control suite 
-        self.sensors: Sequence[Sensor] = [HCS04()] 
+        self.sensors: Sequence[Sensor] = [HCS04() for i in range(4)]
+        self.per_sensor_rotation: np.ndarray = np.array([[0, 1], [-1, 0]])
+
         #self.controller: HCS04Controller = Controller()
         self.controller: HCS04Controller = Creature()
 
@@ -75,17 +77,19 @@ class SimpleCar(Vehicle):
         if np.linalg.norm(new_velocity): 
             self._heading = new_velocity / np.linalg.norm(new_velocity)
             # TODO generalize to multiple sensors to have distince (but relative fixed) headers
-            for sensor in self.sensors: 
-                sensor.heading = self._heading
+
+            self.configure_sensors()
 
     def configure_sensors(self) -> None: 
         # TODO generalize to multiple sensors to have distince (but relative fixed) headers
-        for sensor in self.sensors: 
-            sensor.heading = self._heading
+        next_sensor_heading = self._heading
+        for i, sensor in enumerate(self.sensors):
+            sensor.heading = next_sensor_heading
+            next_sensor_heading = self.per_sensor_rotation @ next_sensor_heading
+
 
     def configure_controller(self) -> None: 
-        pass
-        # self.controller.register_headings(np.array([sensor.heading for sensor in self.sensors]))
+        self.controller.register_headings(np.array([sensor.heading for sensor in self.sensors]))
 
     def draw(self, ax) -> None: 
         ax.scatter(self.position[0], self.position[1], marker="o", s=100)
