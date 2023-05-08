@@ -12,9 +12,9 @@ typedef struct {
 
     // behavioral state (historical)
     double previous_wander_time; 
-    double previous_avoid_heading[2]; 
-    double previous_heading[2]; 
-    double previous_wander[2]; 
+    double* previous_avoid_heading; 
+    double* previous_heading; 
+    double* previous_wander; 
     double previous_time; 
 
     // scheduling 
@@ -22,8 +22,8 @@ typedef struct {
 
     // sensors
     int num_sensors; 
-    int sonar_radian_offsets[4]; 
-    double sonar_basis_vectors[4][2]; 
+    int* sonar_radian_offsets; 
+    double** sonar_basis_vectors; 
 } Controller; 
 
 // Controller private methods 
@@ -35,6 +35,7 @@ double* avoid(Controller*, double*, double*);
 
 // Public API 
 void initialize_controller_default(Controller*); 
+void free_controller(Controller*); 
 void reset(Controller*); 
 double* call(Controller*, double*, double); 
 

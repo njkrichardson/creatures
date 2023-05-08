@@ -14,11 +14,16 @@ void initialize_controller_default(Controller* controller) {
     controller->avoid_supress_time = 0.5; 
     controller->num_sensors = 4; 
 
+    controller->sonar_radian_offsets = malloc(controller->num_sensors * sizeof(int)); 
     controller->sonar_radian_offsets[0] = 0; 
     controller->sonar_radian_offsets[1] = 90; 
     controller->sonar_radian_offsets[2] = 180; 
     controller->sonar_radian_offsets[3] = 270; 
 
+    controller->sonar_basis_vectors = (double **) malloc(4 * sizeof(double *));
+    for (int i = 0; i < 4; i++) {
+        controller->sonar_basis_vectors[i] = (double *) malloc(2 * sizeof(double));
+    }
     controller->sonar_basis_vectors[0][0] = 0;
     controller->sonar_basis_vectors[0][1] = 1;
 
@@ -31,11 +36,25 @@ void initialize_controller_default(Controller* controller) {
     controller->sonar_basis_vectors[2][0] = -1;
     controller->sonar_basis_vectors[2][1] = 0;
 
+    controller->previous_wander = malloc(2 * sizeof(double)); 
     initialize_to_zeros(controller->previous_wander, 2); 
+
+    controller->previous_avoid_heading = malloc(2 * sizeof(double)); 
     initialize_to_zeros(controller->previous_avoid_heading, 2); 
+
     controller->previous_time = 0.0f; 
     controller->previous_wander_time = -10.0f; 
     controller->wander_period = 6; 
+}
+
+void free_controller(Controller* controller){
+    for (int i = 0; i < 4; i++) {
+        free(controller->sonar_basis_vectors[i]);
+    }
+    free(controller->sonar_basis_vectors);
+    free(controller->sonar_radian_offsets); 
+    free(controller->previous_wander); 
+    free(controller->previous_avoid_heading); 
 }
 
 double* feel_force(Controller* controller, double* distances) { 
@@ -48,7 +67,6 @@ double* feel_force(Controller* controller, double* distances) {
     */
     size_t num_sensors = controller->num_sensors ;
 
-    double directional_forces[num_sensors][2]; 
     double* overall_force = malloc(2 * sizeof(double)); 
     initialize_to_zeros(overall_force, 2); 
     double force_per_sensor[num_sensors]; 
