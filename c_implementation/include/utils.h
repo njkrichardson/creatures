@@ -1,18 +1,7 @@
 #ifndef UTILS_H 
 #define UTILS_H 
 
-#include <stdio.h> 
-
-void initialize_to_zeros(double* vector, size_t size) {
-    for (int i=0; i < size; i++) vector[i] = 0.0; 
-}
-
-void print_double_vector(double* vector, size_t size) {
-    printf("("); 
-    for (int i=0; i < size; i++) {
-        printf("%f ", vector[i]); 
-    }
-    printf(")\n"); 
-}
+void initialize_to_zeros(double*, size_t);
+void print_double_vector(double*, size_t); 
 
 #endif 
