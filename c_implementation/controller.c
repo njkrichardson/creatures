@@ -154,11 +154,11 @@ void discretize(double* direction, size_t size) {
     normalize(direction, size); 
 
     // TODO don't recompute
-    double pi = 3.1415926; 
-    // double pi_over_4 = M_PI / 4.0; 
-    // double pi_over_8 = M_PI / 8.0; 
-    double pi_over_4 = pi / 4.0; 
-    double pi_over_8 = pi / 8.0; 
+    // double pi = 3.1415926; 
+    double pi_over_4 = M_PI / 4.0; 
+    double pi_over_8 = M_PI / 8.0; 
+    // double pi_over_4 = pi / 4.0; 
+    // double pi_over_8 = pi / 8.0; 
 
     if ((direction[0] >= 0) && (direction[0] < pi_over_8)) direction[0] = 0.;
     else if ((direction[0] >= pi_over_8) && (direction[0] <= (1. - pi_over_8))) direction[0] = pi_over_4;
