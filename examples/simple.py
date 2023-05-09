@@ -13,6 +13,9 @@ from utils import setup_experiment_directory, get_now_str
 
 parser = argparse.ArgumentParser()
 
+# use c implementation 
+parser.add_argument("--use_c", action="store_true")
+
 # visuals
 parser.add_argument("--save_animation", action="store_true")
 parser.add_argument("--num_steps", type=int, default=500)
@@ -33,7 +36,7 @@ def main(args: namespace):
     log.info(f"Environment: {room}")
 
     # configure the vehicle 
-    vehicle: Vehicle = SimpleCar()
+    vehicle: Vehicle = SimpleCar(use_c_controller=args.use_c)
     log.info("configured vehicle")
 
     # set up the simulator 

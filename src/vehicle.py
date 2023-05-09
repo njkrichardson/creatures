@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Sequence
+from typing import Optional, Sequence
 
 import matplotlib.pyplot as plt 
 import numpy as np 
 
-from control import HCS04Controller, AvoidingController, Creature
-#from control_c import Controller 
+from control import HCS04Controller, AvoidingController, Creature, CreatureCInterface
 from sensor import Sensor, HCS04
 from typedefs import ndarray 
 
@@ -35,7 +34,7 @@ class Vehicle(ABC):
         raise NotImplementedError
 
 class SimpleCar(Vehicle): 
-    def __init__(self) -> None: 
+    def __init__(self, use_c_controller: Optional[bool]=False) -> None: 
         # private 
         self._position: ndarray = np.zeros(2)
         self._velocity: ndarray = np.zeros(2)
@@ -45,8 +44,10 @@ class SimpleCar(Vehicle):
         self.sensors: Sequence[Sensor] = [HCS04() for i in range(4)]
         self.per_sensor_rotation: np.ndarray = np.array([[0, 1], [-1, 0]])
 
-        #self.controller: HCS04Controller = Controller()
-        self.controller: HCS04Controller = Creature()
+        if use_c_controller: 
+            self.controller: HCS04Controller = CreatureCInterface()
+        else: 
+            self.controller: HCS04Controller = Creature()
 
         self.configure_sensors()
         self.configure_controller()

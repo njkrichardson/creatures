@@ -1,7 +1,7 @@
 import logging 
 import os 
 
-from src.utils import LOG_DIRECTORY, get_now_str
+from utils import LOG_DIRECTORY, get_now_str
 
 def setup_logger(name: str, level: int = logging.INFO, custom_handle: os.PathLike=None) -> logging.Logger:
     """Instantiate and configure a logger given a module name and (optionally) 

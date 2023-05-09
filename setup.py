@@ -1,27 +1,27 @@
 import glob 
 import os 
-import setuptools 
-from typing import Sequence
+from setuptools import setup, Extension 
 
-from pybind11.setup_helpers import Pybind11Extension 
+
+from utils import C_DIRECTORY
 
 __version__ = "0.0.1" 
 
-extension_modules: Sequence[Pybind11Extension] = [
-    Pybind11Extension(
-        "control_c", 
-        sorted(glob.glob("c_src/*.cpp")), 
-        include_dirs=["./include"], 
-        ), 
+os.environ["CC"] = "gcc"
 
-]
+c_extension: Extension = Extension(
+        'control_c', 
+        sources=[*glob.glob(os.path.join(C_DIRECTORY, "*.c"))], 
+        include_dirs=[*glob.glob(os.path.join(C_DIRECTORY, "*.h"))], 
+        extra_compile_args=['-Wall', '-Os']
+        )
 
-setuptools.setup(
+setup(
     name="control_c", 
     version=__version__, 
     author="Nick Richardson", 
     author_email="njkrichardson@princeton.edu", 
-    description="CPython bindings for vehicle controller", 
-    ext_modules=extension_modules, 
+    description="Python bindings for C implementation of the vehicle controller", 
+    ext_modules=[c_extension], 
     python_requires=">=3.9", 
 )

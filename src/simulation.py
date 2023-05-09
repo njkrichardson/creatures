@@ -161,7 +161,7 @@ class Simulator:
             # move the vehicle based on its current velocity 
             try: 
                 vehicle.position += vehicle.velocity * self.step_duration
-                print("pos", vehicle.position)
+                print(f"vehicle position: {vehicle.position}")
                 if (not self.environment.inside(vehicle.position)): 
                     raise ValueError
             except ValueError: 

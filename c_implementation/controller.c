@@ -39,6 +39,10 @@ void initialize_controller_default(Controller* controller) {
     controller->previous_wander = malloc(2 * sizeof(double)); 
     initialize_to_zeros(controller->previous_wander, 2); 
 
+    controller->previous_heading = malloc(2 * sizeof(double)); 
+    controller->previous_heading[0] = 0.0; 
+    controller->previous_heading[1] = 1.0; 
+
     controller->previous_avoid_heading = malloc(2 * sizeof(double)); 
     initialize_to_zeros(controller->previous_avoid_heading, 2); 
 
@@ -51,10 +55,16 @@ void free_controller(Controller* controller){
     for (int i = 0; i < 4; i++) {
         free(controller->sonar_basis_vectors[i]);
     }
+    printf("freed sonar_basis_vectors rows"); 
     free(controller->sonar_basis_vectors);
+    printf("freed sonar_basis_vectors entirely"); 
     free(controller->sonar_radian_offsets); 
+    printf("freed sonar_radian_offsets"); 
     free(controller->previous_wander); 
+    printf("freed previous_wander"); 
     free(controller->previous_avoid_heading); 
+    printf("freed previous_avoid_heading"); 
+    free(controller->previous_heading); 
 }
 
 double* feel_force(Controller* controller, double* distances) { 
@@ -65,13 +75,13 @@ double* feel_force(Controller* controller, double* distances) {
     double* distances 
         array of distance measurements (assumed to have length equal to this->num_sensors). 
     */
-    size_t num_sensors = controller->num_sensors ;
+    size_t num_sensors = controller->num_sensors;
 
     double* overall_force = malloc(2 * sizeof(double)); 
     initialize_to_zeros(overall_force, 2); 
     double force_per_sensor[num_sensors]; 
 
-    for (int i=0; i < num_sensors; ++i) force_per_sensor[i] = -1.0 / pow((10.0 * distances[i] + 0.001), 5); 
+    for (int i=0; i < num_sensors; ++i) force_per_sensor[i] = -0.001 / pow((distances[i] + 0.001), 5); 
     for (int i=0; i < num_sensors; ++i) {
         for (int j=0; j < 2; ++j) overall_force[j] += controller->sonar_basis_vectors[i][j] * force_per_sensor[i]; 
     }
@@ -92,31 +102,43 @@ double* runaway(Controller* controller, double* force) {
 }
 
 double* wander(Controller* controller) {
-    double* wander_heading = malloc(2 * sizeof(double)); 
-    double* random_direction = malloc(2 * sizeof(double)); 
+    double* wander_force_normalized = malloc(2 * sizeof(double)); 
+    double* wander_force = malloc(2 * sizeof(double)); 
 
-    initialize_to_zeros(wander_heading, 2); 
-    initialize_to_zeros(random_direction, 2); 
+    initialize_to_zeros(wander_force_normalized, 2); 
+    initialize_to_zeros(wander_force, 2); 
 
-    for (int j=0; j < 2; ++j) random_direction[j] = (((double)rand()/(double)RAND_MAX) * 2.0) - 1.0; 
+    for (int j=0; j < 2; ++j) wander_force[j] = (((double)rand()/(double)RAND_MAX) * 2.0) - 1.0; 
 
-    for (int i=0; i < 2; ++i) {
-        wander_heading[i] = controller->previous_wander[i] + random_direction[i]; 
-    }
+    // for (int i=0; i < 2; ++i) {
+    //     wander_heading[i] = controller->previous_wander[i] + random_direction[i]; 
+    // }
 
-    double wander_heading_norm = norm(wander_heading, 2); 
+    // double wander_heading_norm = norm(wander_heading, 2); 
 
-    for (int i=0; i < 2; ++i) wander_heading[i] = wander_heading[i] / wander_heading_norm; 
-    free(random_direction); 
-    return wander_heading; 
+    double wander_force_norm = norm(wander_force, 2); 
+
+    for (int i=0; i < 2; ++i) wander_force_normalized[i] = wander_force[i] / wander_force_norm; 
+
+    controller->previous_wander = wander_force_normalized; 
+
+    free(wander_force); 
+    return wander_force_normalized; 
 }
 
-double* avoid(Controller* controller, double* force, double* heading) {
-    double* force_plus_heading = malloc(2 * sizeof(double)); 
-    initialize_to_zeros(force_plus_heading, 2); 
+double* avoid(Controller* controller, double* avoid_force, double* wander_force) {
+    double* combined = malloc(2 * sizeof(double)); 
+    initialize_to_zeros(combined, 2); 
 
-    for (int i=0; i < 2; ++i) force_plus_heading[i] = force[i] + heading[i]; 
-    if (norm(force_plus_heading, 2) > controller->significant_force_threshold) return force_plus_heading; 
+    for (int i=0; i < 2; ++i) combined[i] = avoid_force[i] + wander_force[i]; 
+
+    double combined_norm = norm(combined, 2); 
+
+    if (combined_norm > controller->significant_force_threshold) {
+        combined[0] = combined[0] / combined_norm; 
+        combined[1] = combined[1] / combined_norm; 
+        return combined; 
+    }
 
     double* zeros = malloc(2 * sizeof(double)); 
     initialize_to_zeros(zeros, 2); 

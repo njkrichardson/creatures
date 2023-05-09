@@ -4,7 +4,7 @@ from typing import Optional
 import numpy as np 
 import numpy.random as npr
 
-from src.typedefs import ndarray
+from typedefs import ndarray
 
 class Sensor(ABC): 
     @abstractmethod 

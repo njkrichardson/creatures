@@ -16,6 +16,7 @@ def get_project_subdirectory(name: str) -> os.PathLike:
     return absolute_path
 
 LOG_DIRECTORY: os.PathLike = get_project_subdirectory("logs")
+C_DIRECTORY: os.PathLike = get_project_subdirectory("c_implementation")
 
 @functools.lru_cache
 def get_experiment_logs_directory() -> os.PathLike: 
