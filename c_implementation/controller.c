@@ -149,6 +149,34 @@ void reset(Controller* controller) {
     controller->previous_heading[1] = 0.0; 
 }
 
+void discretize(double* direction, size_t size) {
+    /* Discretizes direction into directions with angle (against x-axis, in radians) of [0 * pi/4, 1 * pi / 4, 2 * pi /4, 3 * pi/4, ..., 7pi/4]*/
+    normalize(direction, size); 
+
+    // TODO don't recompute
+    double pi = 3.1415926; 
+    // double pi_over_4 = M_PI / 4.0; 
+    // double pi_over_8 = M_PI / 8.0; 
+    double pi_over_4 = pi / 4.0; 
+    double pi_over_8 = pi / 8.0; 
+
+    if ((direction[0] >= 0) && (direction[0] < pi_over_8)) direction[0] = 0.;
+    else if ((direction[0] >= pi_over_8) && (direction[0] <= (1. - pi_over_8))) direction[0] = pi_over_4;
+    else if (direction[0] >= (1. - pi_over_8)) direction[0] = 1.;
+
+    if ((direction[0] < 0.) && (direction[0] > -pi_over_8)) direction[0] = 0.; 
+    else if ((direction[0] < -pi_over_8) && (direction[0] > (-1. + pi_over_8))) direction[0] = -pi_over_4; 
+    else if (direction[0] < (-1. + pi_over_8)) direction[0] = -1.; 
+
+    if ((direction[1] >= 0) && (direction[1] < pi_over_8)) direction[1] = 0.; 
+    else if ((direction[1] >= pi_over_8) && (direction[1] <= (1. - pi_over_8))) direction[1] = pi_over_4; 
+    else if (direction[1] >= (1. - pi_over_8)) direction[1] = 1.; 
+
+    if ((direction[1] < 0.) && (direction[1] > -pi_over_8)) direction[1] = 0.; 
+    else if ((direction[1] < -pi_over_8) && (direction[1] > (-1. + pi_over_8))) direction[1] = -pi_over_4; 
+    else if (direction[1] < (-1. + pi_over_8)) direction[1] = -1.; 
+}
+
 double* call(Controller* controller, double* distances, double time) {
     // get raw repulsive force (sum over sensors)
     double* avoid_force = feel_force(controller, distances); 

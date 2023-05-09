@@ -255,14 +255,20 @@ class CreatureCInterface(HCS04Controller):
 
         # -- combine wander and avoid forces, round to zero if threshold magnitude is not exceeded
         # -- vector resulting from combining forces and normalizing is the final velocity
-        velocity = self.c_to_ndarray(self.shared_object.avoid(ctypes.byref(self.c_controller), self.ndarray_to_c(avoid_force), self.ndarray_to_c(wander_force)))
+        velocity = self.shared_object.avoid(ctypes.byref(self.c_controller), self.ndarray_to_c(avoid_force), self.ndarray_to_c(wander_force))
+        velocity_ndarray: np.ndarray = self.c_to_ndarray(velocity)
 
         print(f"wander force: {wander_force}")
-        print(f"combined wander/avoid (velocity): {velocity}")
+        print(f"combined wander/avoid (velocity): {velocity_ndarray}")
 
-        self.c_controller.previous_heading = ctypes.pointer((ctypes.c_double * 2)(*velocity))
+        self.c_controller.previous_heading = ctypes.pointer((ctypes.c_double * 2)(*velocity_ndarray))
         self.c_controller.previous_time = time
-        return velocity
+
+        self.shared_object.discretize(velocity, 2)
+        discretized_velocity: np.ndarray = self.c_to_ndarray(velocity)
+
+        print(f"discretized velocity: {discretized_velocity}")
+        return discretized_velocity
 
     def reset(self) -> None:
         pass 
